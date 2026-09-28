@@ -1,0 +1,339 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — Dashmesh Properties{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Agreements Cockpit</h1>
+    <p class="page-subtitle">Manage Maharashtra Leave & License filings, Stamp Duty, Index-II status, and Police Verifications.</p>
+  </div>
+  <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+    <span style="font-size: 12px; color: var(--text-muted); background: white; border: 1px solid var(--border); padding: 6px 12px; border-radius: var(--radius-sm);">
+      Press <kbd style="background: var(--surface-alt); padding: 2px 6px; border-radius: 4px; font-weight: 700;">/</kbd> to search &bull; <kbd style="background: var(--surface-alt); padding: 2px 6px; border-radius: 4px; font-weight: 700;">Esc</kbd> to clear
+    </span>
+    <a href="/agreements/export/csv" class="btn-secondary" id="btn-export-csv">
+      📥 Export CSV
+    </a>
+    <a href="/agreements/new" class="btn-primary" id="btn-create-new">
+      <span>+</span> New Agreement
+    </a>
+  </div>
+</div>
+
+<!-- KPI Ribbon -->
+<div class="kpi-grid">
+  <div class="kpi-card blue">
+    <div class="kpi-info">
+      <span class="kpi-label">Total Portfolio</span>
+      <span class="kpi-value">{{ stats.total }}</span>
+      <span class="kpi-meta">Agreements created</span>
+    </div>
+    <div class="kpi-icon-wrap">📋</div>
+  </div>
+
+  <div class="kpi-card amber">
+    <div class="kpi-info">
+      <span class="kpi-label">Draft & In-Review</span>
+      <span class="kpi-value">{{ stats.draft }}</span>
+      <span class="kpi-meta">Awaiting registration</span>
+    </div>
+    <div class="kpi-icon-wrap">✍️</div>
+  </div>
+
+  <div class="kpi-card green">
+    <div class="kpi-info">
+      <span class="kpi-label">Govt Registered</span>
+      <span class="kpi-value">{{ stats.registered }}</span>
+      <span class="kpi-meta">Index-II completed</span>
+    </div>
+    <div class="kpi-icon-wrap">🏛️</div>
+  </div>
+
+  <div class="kpi-card purple">
+    <div class="kpi-info">
+      <span class="kpi-label">Monthly Rent Book</span>
+      <span class="kpi-value">₹{{ '{:,}'.format(stats.monthly_rent_volume) }}</span>
+      <span class="kpi-meta">Active rent volume</span>
+    </div>
+    <div class="kpi-icon-wrap">💰</div>
+  </div>
+</div>
+
+<!-- Interactive Live Maharashtra Stamp Duty Calculator Widget -->
+<div class="panel">
+  <div class="panel-header">
+    <div class="panel-title">
+      <span>🧮</span> Maharashtra Stamp Duty & Registration Fee Calculator
+    </div>
+    <span style="font-size: 12px; color: var(--text-muted); background: var(--surface-alt); padding: 4px 10px; border-radius: 20px;">
+      Section 55 Maharashtra Rent Control Act
+    </span>
+  </div>
+  <div class="panel-body">
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; align-items: end;">
+      <div class="form-group">
+        <label class="form-label">Monthly Rent (₹)</label>
+        <input type="number" id="calc-rent" class="form-control" value="25000" min="1000" step="500">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Security Deposit (₹)</label>
+        <input type="number" id="calc-deposit" class="form-control" value="75000" min="0" step="1000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Period (Months)</label>
+        <select id="calc-months" class="form-control">
+          <option value="11" selected>11 Months (Standard)</option>
+          <option value="22">22 Months</option>
+          <option value="33">33 Months</option>
+          <option value="60">60 Months (5 Years)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Area Type</label>
+        <select id="calc-area" class="form-control">
+          <option value="urban" selected>Urban (BMC/PMC/PCMC/TMC)</option>
+          <option value="rural">Rural (Gram Panchayat)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Calculated Output Banner -->
+    <div class="stamp-duty-highlight" style="margin-top: 20px; margin-bottom: 0;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-weight: 700; color: #78350f; font-size: 14px;">ESTIMATED GOVERNMENT STATUTORY FEES:</span>
+        <span id="calc-summary" style="font-size: 13px; color: #92400e;">11 months @ ₹25,000/mo</span>
+      </div>
+      <div class="stamp-grid">
+        <div class="stamp-item">
+          <span class="stamp-item-label">Total Consideration Value</span>
+          <div class="stamp-item-val" id="calc-val-consideration">₹2,81,875</div>
+        </div>
+        <div class="stamp-item">
+          <span class="stamp-item-label">Stamp Duty (0.25%)</span>
+          <div class="stamp-item-val" id="calc-val-stamp">₹800</div>
+        </div>
+        <div class="stamp-item">
+          <span class="stamp-item-label">Govt Registration Fee</span>
+          <div class="stamp-item-val" id="calc-val-reg">₹1,000</div>
+        </div>
+        <div class="stamp-item" style="background: #fef08a; border-color: #f59e0b;">
+          <span class="stamp-item-label" style="color: #78350f;">Total Govt Outlay</span>
+          <div class="stamp-item-val" id="calc-val-total" style="color: #78350f;">₹1,800</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AI 1-Prompt Zero-Friction Agreement Creator -->
+<div class="panel" style="background: linear-gradient(135deg, rgba(30, 58, 138, 0.05) 0%, rgba(124, 58, 237, 0.05) 100%); border: 1.5px solid #bfdbfe;">
+  <div class="panel-header" style="background: transparent; border-bottom: 1px solid #bfdbfe;">
+    <div class="panel-title" style="color: #1e40af;">
+      <span>⚡</span> AI 1-Prompt Magic Agreement Creator (Zero Friction)
+    </div>
+    <span style="font-size: 12px; color: #2563eb; font-weight: 600;">Type or paste useful info only &bull; AI fills everything else</span>
+  </div>
+  <div class="panel-body">
+    <form method="post" action="/agreements/quick-create">
+      <div style="display: flex; gap: 12px; flex-direction: column;">
+        <label class="form-label" style="font-weight: 600; color: #1e3a8a;">
+          Paste raw details (Owner, Tenant, Flat, Rent, Deposit, Date):
+        </label>
+        <textarea name="raw_text" class="form-control" rows="2" placeholder="e.g. Owner: Satnam Singh 9822001122, Tenant: Rahul Sharma 9823334455, Flat 402 Rohan Mithila Viman Nagar Pune, Rent 28000, Deposit 75000 from Oct 1" required style="resize: vertical; font-size: 13.5px;"></textarea>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <span style="font-size: 12px; color: var(--text-muted);">
+            ✨ Auto-fills PAN/Aadhaar formats, 11-mo tenure, Stamp Duty, Schedule II Inventory, and Police Verification with 0 questions asked!
+          </span>
+          <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35); font-weight: 600;">
+            🚀 Auto-Generate Everything (1-Click)
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Agreements Data Table Panel -->
+<div class="panel">
+  <div class="panel-header">
+    <div class="filter-bar" style="width: 100%;">
+      <div class="filter-tabs">
+        <a href="/?status_filter=all" class="filter-tab {% if status_filter == 'all' %}active{% endif %}">All ({{ stats.total }})</a>
+        <a href="/?status_filter=draft" class="filter-tab {% if status_filter == 'draft' %}active{% endif %}">Drafts ({{ stats.draft }})</a>
+        <a href="/?status_filter=registered" class="filter-tab {% if status_filter == 'registered' %}active{% endif %}">Registered ({{ stats.registered }})</a>
+        <a href="/?status_filter=police_pending" class="filter-tab {% if status_filter == 'police_pending' %}active{% endif %}">Police Pending ({{ stats.police_pending }})</a>
+        <a href="/?status_filter=expiring_soon" class="filter-tab {% if status_filter == 'expiring_soon' %}active{% endif %}" style="{% if stats.expiring_soon > 0 %}color: #d97706; font-weight: 700;{% endif %}">
+          ⚠️ Expiring Soon ({{ stats.expiring_soon }})
+        </a>
+      </div>
+
+      <div class="search-box">
+        <span style="color: var(--text-muted); font-size: 14px;">🔍</span>
+        <input type="text" id="live-search" class="search-input" placeholder="Search by ID, party name, phone, or flat... (Press /)" value="{{ search }}">
+      </div>
+    </div>
+  </div>
+
+  <div class="data-table-wrap">
+    <table class="data-table" id="agreements-table">
+      <thead>
+        <tr>
+          <th>Agreement Ref</th>
+          <th>Owner (Licensor)</th>
+          <th>Tenant (Licensee)</th>
+          <th>Monthly Rent & Deposit</th>
+          <th>Tenure & Expiry</th>
+          <th>Status</th>
+          <th>Govt Registration</th>
+          <th>Police Verification</th>
+          <th style="text-align: right;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in recent %}
+        <tr class="agreement-row" data-search="{{ a.agreement_no }} {{ a.owner_name }} {{ a.tenant_name }} {{ a.owner_mobile }} {{ a.tenant_mobile }} {{ a.property_address }} {{ a.property_city }}">
+          <td>
+            <a href="/agreements/{{ a.id }}" class="id-badge">{{ a.agreement_no }}</a>
+            <div style="font-size: 11px; color: var(--text-subtle); margin-top: 3px;">
+              {{ a.created_at.strftime('%d-%b-%Y') if a.created_at else '' }}
+            </div>
+          </td>
+          <td>
+            <div class="party-cell">
+              <span class="party-name">{{ a.owner_name }}</span>
+              <span class="party-sub">+91 {{ a.owner_mobile }}</span>
+            </div>
+          </td>
+          <td>
+            <div class="party-cell">
+              <span class="party-name">{{ a.tenant_name }}</span>
+              <span class="party-sub">+91 {{ a.tenant_mobile }}</span>
+            </div>
+          </td>
+          <td>
+            <div><b>₹{{ '{:,}'.format(a.rent) }}</b> <span style="font-size: 12px; color: var(--text-muted);">/mo</span></div>
+            <div style="font-size: 12px; color: var(--text-muted);">Dep: ₹{{ '{:,}'.format(a.deposit) }}</div>
+          </td>
+          <td>
+            <div style="font-size: 12.5px;">{{ a.end_date.strftime('%d-%b-%Y') }}</div>
+            {% if a.is_expired %}
+              <span class="badge badge-danger" style="margin-top: 2px;"><span class="badge-dot"></span>Expired</span>
+            {% elif a.is_expiring_soon %}
+              <span class="badge badge-warning" style="margin-top: 2px;"><span class="badge-dot"></span>{{ a.days_left }}d left</span>
+            {% else %}
+              <span style="font-size: 11px; color: var(--text-muted);">{{ a.days_left }}d remaining</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if a.status == 'Draft' %}
+              <span class="badge badge-draft"><span class="badge-dot"></span>Draft</span>
+            {% elif a.status == 'Active' or a.status == 'Completed' %}
+              <span class="badge badge-success"><span class="badge-dot"></span>{{ a.status }}</span>
+            {% else %}
+              <span class="badge badge-warning"><span class="badge-dot"></span>{{ a.status }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if a.registration_status == 'Completed' %}
+              <span class="badge badge-success"><span class="badge-dot"></span>Registered</span>
+              {% if a.index_ii_no %}
+                <div style="font-size: 10.5px; color: var(--text-muted); font-family: monospace;">{{ a.index_ii_no }}</div>
+              {% endif %}
+            {% elif a.registration_status == 'Submitted' or a.registration_status == 'Pending' %}
+              <span class="badge badge-warning"><span class="badge-dot"></span>{{ a.registration_status }}</span>
+            {% else %}
+              <span class="badge badge-draft"><span class="badge-dot"></span>Not Started</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if a.police_status == 'Completed' %}
+              <span class="badge badge-success"><span class="badge-dot"></span>Verified</span>
+              {% if a.police_token_no %}
+                <div style="font-size: 10px; color: #166534; font-family: monospace; font-weight: 600;">{{ a.police_token_no }}</div>
+              {% endif %}
+            {% elif a.police_status == 'Form Filled (AI)' %}
+              <span class="badge badge-warning"><span class="badge-dot"></span>AI Filled</span>
+            {% elif a.police_status == 'Submitted' or a.police_status == 'Pending' %}
+              <span class="badge badge-info"><span class="badge-dot"></span>{{ a.police_status }}</span>
+            {% else %}
+              <span class="badge badge-draft"><span class="badge-dot"></span>Pending</span>
+            {% endif %}
+          </td>
+          <td style="text-align: right;">
+            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+              <a href="/agreements/{{ a.id }}" class="btn-secondary btn-sm" title="View Agreement">View</a>
+              <a href="/agreements/{{ a.id }}/pdf" class="btn-primary btn-sm" title="Download Maharashtra Legal PDF">PDF</a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">
+            No rent agreements found matching this filter. Click <a href="/agreements/new" style="font-weight: 600;">+ Create Agreement</a> to get started.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// Live Calculator Logic
+function updateCalculator() {
+  const rent = parseInt(document.getElementById('calc-rent').value) || 0;
+  const deposit = parseInt(document.getElementById('calc-deposit').value) || 0;
+  const months = parseInt(document.getElementById('calc-months').value) || 11;
+  const area = document.getElementById('calc-area').value;
+
+  const totalRent = rent * months;
+  const imputedDeposit = (deposit * 0.10) * (months / 12.0);
+  const totalConsideration = totalRent + imputedDeposit;
+  
+  let stampDuty = Math.max(100, Math.ceil((totalConsideration * 0.0025) / 100) * 100);
+  const regFee = area === 'rural' ? 500 : 1000;
+  const totalGovt = stampDuty + regFee;
+
+  document.getElementById('calc-summary').innerText = `${months} months @ ₹${rent.toLocaleString('en-IN')}/mo + ₹${deposit.toLocaleString('en-IN')} dep`;
+  document.getElementById('calc-val-consideration').innerText = '₹' + Math.round(totalConsideration).toLocaleString('en-IN');
+  document.getElementById('calc-val-stamp').innerText = '₹' + stampDuty.toLocaleString('en-IN');
+  document.getElementById('calc-val-reg').innerText = '₹' + regFee.toLocaleString('en-IN');
+  document.getElementById('calc-val-total').innerText = '₹' + totalGovt.toLocaleString('en-IN');
+}
+
+['calc-rent', 'calc-deposit', 'calc-months', 'calc-area'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener('input', updateCalculator);
+    el.addEventListener('change', updateCalculator);
+  }
+});
+
+// Client-side instant live table search
+const searchBox = document.getElementById('live-search');
+if (searchBox) {
+  searchBox.addEventListener('input', function(e) {
+    const query = e.target.value.toLowerCase().trim();
+    const rows = document.querySelectorAll('.agreement-row');
+    rows.forEach(row => {
+      const text = row.getAttribute('data-search').toLowerCase();
+      row.style.display = text.includes(query) ? '' : 'none';
+    });
+  });
+
+  // Global Keyboard Shortcuts
+  document.addEventListener('keydown', function(e) {
+    if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+      e.preventDefault();
+      searchBox.focus();
+      searchBox.select();
+    }
+    if (e.key === 'Escape' && document.activeElement === searchBox) {
+      searchBox.value = '';
+      searchBox.dispatchEvent(new Event('input'));
+      searchBox.blur();
+    }
+  });
+}
+</script>
+{% endblock %}

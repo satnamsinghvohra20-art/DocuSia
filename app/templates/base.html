@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Dashmesh Properties — Leave & License System{% endblock %}</title>
+  <script>
+    // Instant FOUC-free theme initialization
+    (function() {
+      const saved = localStorage.getItem('dashmesh_theme');
+      if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="/static/style.css?v=3.5">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>">
+  <style>
+    /* High-Impact Deep Ambient Mesh Aurora Background */
+    body {
+      background: 
+        radial-gradient(circle at 10% 15%, rgba(59, 130, 246, 0.22) 0%, transparent 45%),
+        radial-gradient(circle at 90% 10%, rgba(139, 92, 246, 0.20) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.08) 0%, transparent 45%),
+        radial-gradient(circle at 85% 85%, rgba(16, 185, 129, 0.15) 0%, transparent 45%),
+        radial-gradient(circle at 15% 85%, rgba(14, 165, 233, 0.15) 0%, transparent 45%),
+        linear-gradient(135deg, #070d1e 0%, #0b152d 50%, #111a3d 100%) !important;
+      background-attachment: fixed !important;
+      color: #f1f5f9;
+      min-height: 100vh;
+    }
+
+    [data-theme="light"] body {
+      background: 
+        radial-gradient(circle at 10% 15%, rgba(59, 130, 246, 0.12) 0%, transparent 45%),
+        radial-gradient(circle at 90% 10%, rgba(139, 92, 246, 0.10) 0%, transparent 45%),
+        radial-gradient(circle at 50% 45%, rgba(245, 158, 11, 0.06) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(16, 185, 129, 0.09) 0%, transparent 45%),
+        radial-gradient(circle at 15% 85%, rgba(14, 165, 233, 0.08) 0%, transparent 45%),
+        linear-gradient(135deg, #eef2f6 0%, #e2e8f0 50%, #dfe7f6 100%) !important;
+      background-attachment: fixed !important;
+      color: #0f172a;
+    }
+
+    .panel {
+      background: rgba(17, 24, 43, 0.88) !important;
+      backdrop-filter: blur(14px) !important;
+      -webkit-backdrop-filter: blur(14px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    [data-theme="light"] .panel {
+      background: rgba(255, 255, 255, 0.92) !important;
+      border: 1px solid rgba(203, 213, 225, 0.8) !important;
+      box-shadow: 0 10px 25px -5px rgba(148, 163, 184, 0.2) !important;
+    }
+
+    .navbar {
+      background: rgba(7, 13, 30, 0.92) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="/" class="brand-wrapper">
+        <div class="brand-logo-icon">SIA</div>
+        <div class="brand-text">
+          <span class="brand-title">DOCUSIA</span>
+          <span class="brand-subtitle">Secure Identity & Agreements</span>
+        </div>
+      </a>
+      
+      <div class="nav-links">
+        <button onclick="toggleTheme()" class="theme-toggle-btn" id="btn-theme-toggle" title="Toggle Dark/Light Mode">
+          <span id="theme-icon">🌓</span> <span id="theme-label" style="font-size: 13px;">Theme</span>
+        </button>
+        <a href="/" class="nav-link">Dashboard</a>
+        <a href="/agreements/export/csv" class="nav-link" title="Export all records to CSV">Export CSV</a>
+        <a href="/agreements/new" class="btn-primary" id="btn-nav-new-agreement">
+          <span>+</span> Create Agreement
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="main-wrapper">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer style="border-top: 1px solid var(--border); padding: 30px 24px; text-align: center; color: var(--text-muted); font-size: 13px; background: var(--surface); margin-top: 40px;">
+    <p><b>Dashmesh Properties Management System</b> — Compliant with Section 55 of Maharashtra Rent Control Act, 1999.</p>
+    <p style="margin-top: 6px; font-size: 12px; color: var(--text-subtle);">Official Maharashtra Portals: <a href="https://igrmaharashtra.gov.in/" target="_blank" style="color: var(--primary-light);">IGR Maharashtra</a> &bull; <a href="https://citizen.mahapolice.gov.in/Citizen/" target="_blank" style="color: var(--primary-light);">Maharashtra Police Citizen Portal</a> &bull; <a href="https://gras.mahakosh.gov.in/" target="_blank" style="color: var(--primary-light);">Govt Receipt Accounting System (GRAS)</a></p>
+  </footer>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      if (isDark) {
+        html.removeAttribute('data-theme');
+        localStorage.setItem('dashmesh_theme', 'light');
+        document.getElementById('theme-icon').innerText = '☀️';
+      } else {
+        html.setAttribute('data-theme', 'dark');
+        localStorage.setItem('dashmesh_theme', 'dark');
+        document.getElementById('theme-icon').innerText = '🌙';
+      }
+    }
+
+    // Set initial icon
+    if (document.documentElement.getAttribute('data-theme') === 'dark') {
+      const icon = document.getElementById('theme-icon');
+      if (icon) icon.innerText = '🌙';
+    }
+  </script>
+</body>
+</html>

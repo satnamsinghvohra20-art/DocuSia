@@ -1,0 +1,1062 @@
+{% extends 'base.html' %}
+{% block title %}{{ a.agreement_no }} — Dashmesh Properties{% endblock %}
+
+{% block content %}
+<!-- Top Header -->
+<div class="page-header">
+  <div>
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+      <h1 class="page-title">{{ a.agreement_no }}</h1>
+      {% if a.registration_status == 'Completed' %}
+        <span class="badge badge-success"><span class="badge-dot"></span>Registered</span>
+      {% elif a.status == 'Draft' %}
+        <span class="badge badge-draft"><span class="badge-dot"></span>Draft</span>
+      {% else %}
+        <span class="badge badge-info"><span class="badge-dot"></span>{{ a.status }}</span>
+      {% endif %}
+
+      {% if is_expired %}
+        <span class="badge badge-danger"><span class="badge-dot"></span>Expired ({{ days_left|abs }} days ago)</span>
+      {% elif is_expiring_soon %}
+        <span class="badge badge-warning"><span class="badge-dot"></span>⚠️ Expires in {{ days_left }} days</span>
+      {% else %}
+        <span class="badge badge-success"><span class="badge-dot"></span>🟢 Active ({{ days_left }} days left)</span>
+      {% endif %}
+    </div>
+    <p class="page-subtitle">{{ a.owner_name }} (Licensor) &bull; {{ a.tenant_name }} (Licensee) &bull; {{ a.property_city or 'Pune' }}</p>
+  </div>
+  
+  <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+    <button onclick="copyShareLink()" class="btn-secondary" id="btn-copy-link" title="Copy agreement link to clipboard">
+      🔗 Share Link
+    </button>
+    <a href="/agreements/{{ a.id }}/pdf" class="btn-primary" id="btn-download-legal-pdf">
+      <span>📄</span> Legal Agreement (PDF)
+    </a>
+    {% if a.biometric_status == 'Completed' or a.biometric_token %}
+    <a href="/agreements/{{ a.id }}/biometric-cert-pdf" class="btn-secondary" id="btn-download-bio-cert" style="border-color: #93c5fd; color: #1e40af; background: #eff6ff; font-weight: 600;" title="Download Official UIDAI Biometric Verification Certificate PDF">
+      <span>🧬</span> Biometric Cert (PDF)
+    </a>
+    {% endif %}
+    {% if a.police_status == 'Completed' %}
+    <a href="/agreements/{{ a.id }}/police-ack-pdf" class="btn-secondary" id="btn-download-police-ack-top" style="border-color: #86efac; color: #166534; background: #f0fdf4; font-weight: 600;" title="Download Official Police Submission Acknowledgment Certificate">
+      <span>🛡️</span> Police Ack (PDF)
+    </a>
+    {% endif %}
+    <a href="/agreements/{{ a.id }}/police-form" class="btn-secondary" id="btn-download-police-pdf" title="Download Official Maharashtra Police Tenant Verification Form">
+      <span>👮</span> Police Report (PDF)
+    </a>
+    <a href="/agreements/{{ a.id }}/inventory/pdf" class="btn-secondary" id="btn-download-inventory-pdf" title="Download Schedule II Inventory Handover Report">
+      <span>📋</span> Inventory (PDF)
+    </a>
+    <a href="/" class="btn-secondary">← Back</a>
+  </div>
+</div>
+
+<!-- Instant WhatsApp Notification Dispatcher Hub -->
+<div class="panel" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1px solid #bbf7d0;">
+  <div class="panel-header" style="background: transparent; border-bottom: 1px solid #bbf7d0;">
+    <div class="panel-title" style="color: #166534;">
+      <span>💬</span> WhatsApp Instant Notifications (Direct to Owner & Tenant)
+    </div>
+    <span style="font-size: 12px; color: #15803d; font-weight: 600;">1-Click Click-to-Chat</span>
+  </div>
+  <div class="panel-body" style="display: flex; gap: 12px; flex-wrap: wrap;">
+    {% if wa_urls.owner_review %}
+      <a href="{{ wa_urls.owner_review }}" target="_blank" class="btn-secondary btn-sm" style="background: white; color: #166534; border-color: #86efac; font-weight: 600;">
+        📲 WhatsApp Draft to Owner
+      </a>
+    {% endif %}
+    {% if wa_urls.tenant_review %}
+      <a href="{{ wa_urls.tenant_review }}" target="_blank" class="btn-secondary btn-sm" style="background: white; color: #166534; border-color: #86efac; font-weight: 600;">
+        📲 WhatsApp Draft to Tenant
+      </a>
+    {% endif %}
+    {% if wa_urls.biometric_tenant %}
+      <a href="{{ wa_urls.biometric_tenant }}" target="_blank" class="btn-secondary btn-sm" style="background: white; color: #166534; border-color: #86efac; font-weight: 600;">
+        🗓️ Send Biometric Schedule
+      </a>
+    {% endif %}
+    {% if a.registration_status == 'Completed' and wa_urls.index_tenant %}
+      <a href="{{ wa_urls.index_tenant }}" target="_blank" class="btn-primary btn-sm" style="background: #16a34a; font-weight: 600;">
+        🎉 Send Registered Index-II
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Visual Lifecycle Stepper -->
+<div class="panel" style="padding: 24px;">
+  <span style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Tenancy & Govt Filing Lifecycle</span>
+  <div class="lifecycle-stepper">
+    <div class="stepper-step {% if a.status != 'Draft' or a.registration_status != 'Not Started' %}completed{% else %}current{% endif %}">
+      <div class="stepper-circle">1</div>
+      <span class="stepper-label">Draft Created</span>
+    </div>
+
+    <div class="stepper-step {% if a.status in ['Client Approved', 'Active', 'Completed'] or a.registration_status in ['Pending', 'Submitted', 'Completed'] %}completed{% elif a.status == 'Draft' and a.registration_status == 'Not Started' %}pending{% else %}current{% endif %}">
+      <div class="stepper-circle">2</div>
+      <span class="stepper-label">Parties Approved</span>
+    </div>
+
+    <div class="stepper-step {% if a.registration_status in ['Submitted', 'Completed'] or a.igr_token_no %}completed{% else %}pending{% endif %}">
+      <div class="stepper-circle">3</div>
+      <span class="stepper-label">Stamp Duty Paid</span>
+    </div>
+
+    <div class="stepper-step {% if a.registration_status == 'Completed' or a.biometric_status == 'Completed' or a.biometric_token %}completed{% elif a.biometric_status == 'Scheduled' or a.biometric_date %}current{% else %}pending{% endif %}">
+      <div class="stepper-circle">4</div>
+      <span class="stepper-label">Biometrics</span>
+    </div>
+
+    <div class="stepper-step {% if a.registration_status == 'Completed' %}completed{% else %}pending{% endif %}">
+      <div class="stepper-circle">5</div>
+      <span class="stepper-label">Govt Registered</span>
+    </div>
+
+    <div class="stepper-step {% if a.police_status == 'Completed' %}completed{% elif a.police_status in ['Submitted', 'Pending', 'Form Filled (AI)'] %}current{% else %}pending{% endif %}">
+      <div class="stepper-circle">6</div>
+      <span class="stepper-label">Police Verified</span>
+    </div>
+  </div>
+</div>
+
+<!-- 1-Click Tenancy Renewal Hub -->
+<div class="panel" style="background: #faf5ff; border: 1px solid #e9d5ff;">
+  <div class="panel-header" style="background: transparent; border-bottom: 1px solid #e9d5ff;">
+    <div class="panel-title" style="color: #6b21a8;">
+      <span>⚡</span> 1-Click Tenancy Renewal Engine
+    </div>
+    <span style="font-size: 12px; color: #7e22ce;">Seamless 11-Month Extension</span>
+  </div>
+  <div class="panel-body">
+    <form method="post" action="/agreements/{{ a.id }}/renew" style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+      <div style="flex: 1; min-width: 280px; font-size: 13.5px; color: #581c87;">
+        Extend this tenancy for another 11 months with automatic escalation calculation, updated contract dates, cloned inventory items, and freshly recalculated Stamp Duty & Registration Fees.
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <label class="form-label" style="white-space: nowrap; margin: 0;">Escalation Rate:</label>
+        <select name="escalation_percent" class="form-control" style="width: 100px;">
+          <option value="0">0%</option>
+          <option value="5" {% if (a.escalation_percent or 5) == 5 %}selected{% endif %}>5%</option>
+          <option value="7">7%</option>
+          <option value="10" {% if a.escalation_percent == 10 %}selected{% endif %}>10%</option>
+          <option value="15">15%</option>
+        </select>
+      </div>
+      <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); box-shadow: 0 4px 14px rgba(109, 40, 217, 0.35);">
+        ⚡ Renew Tenancy (₹{{ '{:,}'.format(renew_rent_preview) }}/mo)
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Statutory Stamp Duty & Gov Fees Summary Ribbon -->
+<div class="stamp-duty-highlight">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+    <div>
+      <span style="font-weight: 700; color: #78350f; font-size: 14px;">MAHARASHTRA STATUTORY CONSIDERATION & STAMP DUTY BREAKDOWN</span>
+      <div style="font-size: 12px; color: #92400e;">Tenure: {{ months_duration }} Months ({{ a.start_date.strftime('%d-%b-%Y') }} to {{ a.end_date.strftime('%d-%b-%Y') }})</div>
+    </div>
+    <span style="background: white; border: 1px solid #fde68a; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; color: #78350f;">
+      Section 55 Maharashtra Rent Control Act
+    </span>
+  </div>
+
+  <div class="stamp-grid">
+    <div class="stamp-item">
+      <span class="stamp-item-label">Total Consideration Value</span>
+      <div class="stamp-item-val">₹{{ '{:,}'.format(stamp_info.total_consideration|int) }}</div>
+      <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Rent + 10% Dep Interest</div>
+    </div>
+    <div class="stamp-item">
+      <span class="stamp-item-label">Stamp Duty (0.25%)</span>
+      <div class="stamp-item-val" style="color: #b45309;">₹{{ '{:,}'.format(stamp_info.stamp_duty) }}</div>
+      <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Rounded per Stamp Act</div>
+    </div>
+    <div class="stamp-item">
+      <span class="stamp-item-label">Govt Registration Fee</span>
+      <div class="stamp-item-val">₹{{ '{:,}'.format(stamp_info.registration_fee) }}</div>
+      <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Urban Corporation Area</div>
+    </div>
+    <div class="stamp-item" style="background: #fef08a; border-color: #f59e0b;">
+      <span class="stamp-item-label" style="color: #78350f;">Total Statutory Payable</span>
+      <div class="stamp-item-val" style="color: #78350f;">₹{{ '{:,}'.format(stamp_info.total_govt_fees) }}</div>
+      <div style="font-size: 11px; color: #92400e; margin-top: 2px;">Stamp Duty + Reg Fee</div>
+    </div>
+  </div>
+</div>
+
+<!-- Details Grid -->
+<div class="detail-grid">
+  <!-- Parties Card -->
+  <div class="info-card">
+    <div class="info-card-header">
+      <span>👥 Contracting Parties</span>
+      <span style="font-size: 12px; color: var(--text-muted);">Verified KYC</span>
+    </div>
+    
+    <div style="margin-bottom: 12px;">
+      <span style="font-size: 11px; font-weight: 700; color: var(--primary); text-transform: uppercase;">Licensor (Owner)</span>
+      <div class="info-row">
+        <span class="info-label">Name:</span>
+        <span class="info-val">{{ a.owner_name }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Mobile:</span>
+        <span class="info-val">+91 {{ a.owner_mobile }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">PAN Number:</span>
+        <span class="info-val">{{ a.owner_pan or 'Not Provided' }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Aadhaar Ref:</span>
+        <span class="info-val">{% if a.owner_aadhaar_last4 %}XXXX-XXXX-{{ a.owner_aadhaar_last4 }}{% else %}Verified Biometrically{% endif %}</span>
+      </div>
+    </div>
+
+    <div style="margin-top: 18px; border-top: 1px solid var(--border); padding-top: 12px;">
+      <span style="font-size: 11px; font-weight: 700; color: var(--primary); text-transform: uppercase;">Licensee (Tenant)</span>
+      <div class="info-row">
+        <span class="info-label">Name:</span>
+        <span class="info-val">{{ a.tenant_name }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Mobile:</span>
+        <span class="info-val">+91 {{ a.tenant_mobile }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">PAN Number:</span>
+        <span class="info-val">{{ a.tenant_pan or 'Not Provided' }}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Aadhaar Ref:</span>
+        <span class="info-val">{% if a.tenant_aadhaar_last4 %}XXXX-XXXX-{{ a.tenant_aadhaar_last4 }}{% else %}Verified Biometrically{% endif %}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Property & Commercial Card -->
+  <div class="info-card">
+    <div class="info-card-header">
+      <span>🏠 Property & Commercial Terms</span>
+      <span style="font-size: 12px; color: var(--text-muted);">Schedule I</span>
+    </div>
+
+    <div class="info-row">
+      <span class="info-label">Property Address:</span>
+      <span class="info-val" style="max-width: 65%;">{{ a.property_address }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Type & City:</span>
+      <span class="info-val">{{ a.property_type }} &bull; {{ a.property_city or 'Pune' }} ({{ a.pincode or 'N/A' }})</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Furnishing:</span>
+      <span class="info-val">{{ a.furnishing_status or 'Semi-Furnished' }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Electricity CA/Consumer No:</span>
+      <span class="info-val">{{ a.electricity_consumer_no or 'At Handover' }}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Monthly License Fee:</span>
+      <span class="info-val" style="color: var(--primary); font-size: 15px;">₹{{ '{:,}'.format(a.rent) }} /-</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Security Deposit:</span>
+      <span class="info-val">₹{{ '{:,}'.format(a.deposit) }} /- (Refundable)</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Lock-in & Notice:</span>
+      <span class="info-val">{{ a.lock_in }} &bull; {{ a.notice_period }} Notice</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Escalation on Renewal:</span>
+      <span class="info-val">{{ a.escalation_percent or 5 }}%</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Special Terms:</span>
+      <span class="info-val" style="font-weight: normal; font-size: 12px;">{{ a.special_terms or 'Standard Maharashtra statutory clauses apply.' }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- Schedule II: Property Inspection & Inventory Matrix Section -->
+<div class="panel" id="inventory-section">
+  <div class="panel-header">
+    <div class="panel-title">
+      <span>📋</span> Schedule II: Property Inspection & Inventory Handover
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <a href="/agreements/{{ a.id }}/inventory/pdf" class="btn-primary btn-sm" title="Download Official Schedule II Report">
+        📥 Download Inventory Report (PDF)
+      </a>
+    </div>
+  </div>
+  <div class="panel-body">
+    
+    <!-- Add Item Form -->
+    <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; margin-bottom: 20px;">
+      <h3 style="font-size: 13.5px; font-weight: 700; color: var(--text-main); margin-bottom: 10px;">+ Add Fixture, Appliance or Handover Item</h3>
+      <form method="post" action="/agreements/{{ a.id }}/inventory" style="display: grid; grid-template-columns: 1fr 2fr 1fr 1.5fr 2fr auto; gap: 10px; align-items: end;">
+        <div class="form-group">
+          <label class="form-label">Room</label>
+          <select name="room" class="form-control">
+            <option value="Living Room" selected>Living Room</option>
+            <option value="Master Bedroom">Master Bedroom</option>
+            <option value="Bedroom 2">Bedroom 2</option>
+            <option value="Kitchen">Kitchen</option>
+            <option value="Bathrooms">Bathrooms</option>
+            <option value="Balcony">Balcony</option>
+            <option value="Keys / Access">Keys & Cards</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Item & Brand Description</label>
+          <input name="item_name" class="form-control" placeholder="e.g. 1.5 Ton Split AC (Voltas)" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Qty</label>
+          <input name="quantity" class="form-control" value="1" placeholder="1" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Move-In Condition</label>
+          <select name="condition" class="form-control">
+            <option value="Brand New">Brand New</option>
+            <option value="Excellent / Working" selected>Excellent / Working</option>
+            <option value="Good / Operational">Good / Operational</option>
+            <option value="Minor Wear">Minor Wear</option>
+            <option value="Needs Repair">Needs Repair</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Remarks</label>
+          <input name="remarks" class="form-control" placeholder="e.g. Serviced, remote included">
+        </div>
+
+        <div class="form-group">
+          <button type="submit" class="btn-primary" style="height: 42px;">Add</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Inventory Table -->
+    <div class="data-table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Room / Area</th>
+            <th>Item Name & Description</th>
+            <th>Quantity</th>
+            <th>Condition at Handover</th>
+            <th>Remarks</th>
+            <th style="text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for it in inventory %}
+          <tr>
+            <td><b>{{ it.room }}</b></td>
+            <td>{{ it.item_name }}</td>
+            <td><span class="badge badge-draft">{{ it.quantity }}</span></td>
+            <td><span class="badge badge-success"><span class="badge-dot"></span>{{ it.condition }}</span></td>
+            <td style="font-size: 12.5px; color: var(--text-muted);">{{ it.remarks or 'Inspected' }}</td>
+            <td style="text-align: right;">
+              <form method="post" action="/agreements/{{ a.id }}/inventory/{{ it.id }}/delete" style="display: inline;">
+                <button type="submit" class="btn-secondary btn-sm" style="color: var(--danger-text); border-color: #fca5a5;">Remove</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">
+              No inventory recorded yet. Add fixtures, appliances, or keys above to generate the official Schedule II Move-In Report.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- UIDAI RD-Service Biometric Verification Console -->
+<div class="panel" id="biometric-section" style="border: 2px solid {% if a.biometric_status == 'Completed' or a.biometric_token %}#93c5fd{% else %}#cbd5e1{% endif %}; background: {% if a.biometric_status == 'Completed' or a.biometric_token %}linear-gradient(180deg, #eff6ff 0%, var(--card-bg) 110px){% else %}var(--card-bg){% endif %};">
+  <div class="panel-header" style="flex-wrap: wrap; gap: 12px; border-bottom: 1px solid {% if a.biometric_status == 'Completed' or a.biometric_token %}#bfdbfe{% else %}var(--border){% endif %};">
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+      <div class="panel-title" style="color: {% if a.biometric_status == 'Completed' or a.biometric_token %}#1d4ed8{% else %}var(--text-main){% endif %};">
+        <span>🧬</span> Doorstep Aadhaar Biometric Verification & UIDAI RD Service Console
+      </div>
+      {% if a.biometric_status == 'Completed' or a.biometric_token %}
+        <span class="badge badge-success" style="font-size: 12px; padding: 4px 10px; background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0;">
+          <span class="badge-dot"></span>BIOMETRIC VERIFIED & CAPTURED
+        </span>
+      {% elif a.biometric_status == 'Scheduled' %}
+        <span class="badge badge-warning" style="font-size: 12px; padding: 4px 10px;">
+          <span class="badge-dot"></span>VISIT SCHEDULED
+        </span>
+      {% else %}
+        <span class="badge badge-draft" style="font-size: 12px; padding: 4px 10px;">
+          <span class="badge-dot"></span>NOT STARTED
+        </span>
+      {% endif %}
+    </div>
+
+    <!-- Biometric Actions Hub -->
+    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+      <form method="post" action="/agreements/{{ a.id }}/biometric-capture" style="display: inline;">
+        <button type="submit" class="btn-primary btn-sm" id="btn-biometric-capture" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); font-weight: 600;" title="Run live UIDAI STQC-certified biometric fingerprint capture for Licensor & Licensee">
+          ⚡ 1-Click Biometric Capture (Mantra / Morpho)
+        </button>
+      </form>
+
+      {% if a.biometric_status == 'Completed' or a.biometric_token %}
+        <a href="/agreements/{{ a.id }}/biometric-cert-pdf" class="btn-secondary btn-sm" id="btn-download-bio-pdf" style="background: #eff6ff; color: #1e40af; border-color: #93c5fd; font-weight: 600;" title="Download Official UIDAI Biometric Verification Certificate PDF">
+          📥 Biometric Certificate (PDF)
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="panel-body">
+    <!-- Live Biometric Hardware & Minutiae Status Ribbon -->
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+      <div>
+        <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px;">STQC Certified Hardware</span>
+        <div style="font-size: 14.5px; font-weight: 700; color: #0f172a; margin-top: 2px;">
+          🔍 {{ a.biometric_device or 'Mantra MFS100 (Level 0 RD Service v2.0.4)' }}
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+          Minutiae Standard: <b>ISO 19794-2 / NFIQ 2.0</b> &bull; Section 29 Aadhaar Act 2016 Data Encryption
+        </div>
+      </div>
+
+      {% if a.biometric_token %}
+      <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); padding: 8px 14px;">
+        <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #1e40af;">UIDAI e-Registration Token</span>
+        <div style="font-family: monospace; font-size: 13.5px; font-weight: 700; color: #1d4ed8; margin-top: 2px;">
+          {{ a.biometric_token }}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Biometric Capture Grid: Owner & Tenant -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 20px;">
+      <!-- Licensor Box -->
+      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase;">Licensor (Owner)</span>
+          {% if a.biometric_status == 'Completed' or a.biometric_token %}
+            <span class="badge badge-success"><span class="badge-dot"></span>98% Score 1</span>
+          {% else %}
+            <span class="badge badge-draft">Pending Scan</span>
+          {% endif %}
+        </div>
+        <div style="font-size: 14px; font-weight: 600; color: var(--text-main);">{{ a.owner_name }}</div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Aadhaar: XXXX-XXXX-{{ a.owner_aadhaar_last4 or '4521' }}</div>
+        <div style="margin-top: 10px; font-size: 12px; color: {% if a.biometric_status == 'Completed' or a.biometric_token %}#166534{% else %}var(--text-muted){% endif %}; display: flex; align-items: center; gap: 6px;">
+          <span>👆</span> <b>Right Thumb Impression:</b> {% if a.biometric_status == 'Completed' or a.biometric_token %}Verified & Encrypted{% else %}Awaiting Device Scan{% endif %}
+        </div>
+      </div>
+
+      <!-- Licensee Box -->
+      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase;">Licensee (Tenant)</span>
+          {% if a.biometric_status == 'Completed' or a.biometric_token %}
+            <span class="badge badge-success"><span class="badge-dot"></span>97% Score 1</span>
+          {% else %}
+            <span class="badge badge-draft">Pending Scan</span>
+          {% endif %}
+        </div>
+        <div style="font-size: 14px; font-weight: 600; color: var(--text-main);">{{ a.tenant_name }}</div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Aadhaar: XXXX-XXXX-{{ a.tenant_aadhaar_last4 or '8912' }}</div>
+        <div style="margin-top: 10px; font-size: 12px; color: {% if a.biometric_status == 'Completed' or a.biometric_token %}#166534{% else %}var(--text-muted){% endif %}; display: flex; align-items: center; gap: 6px;">
+          <span>👆</span> <b>Left Index / Thumb Scan:</b> {% if a.biometric_status == 'Completed' or a.biometric_token %}Verified & Encrypted{% else %}Awaiting Device Scan{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Doorstep Scheduling Form -->
+    <div style="padding-top: 16px; border-top: 1px dashed var(--border);">
+      <form method="post" action="/agreements/{{ a.id }}/biometric-schedule" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 220px;">
+          <label class="form-label" style="margin-bottom: 4px;">Schedule Doorstep Biometric Verification Slot</label>
+          <input name="appointment_date" class="form-control" placeholder="e.g. 05-Oct-2026, 11:30 AM" value="{{ a.biometric_date or '' }}" required>
+        </div>
+        <div style="min-width: 200px;">
+          <label class="form-label" style="margin-bottom: 4px;">Assigned Field Executive</label>
+          <input name="executive_name" class="form-control" placeholder="Field Officer Name" value="Rohan K. (Dashmesh Field Desk)">
+        </div>
+        <button type="submit" class="btn-secondary" style="margin-top: 20px;">
+          🗓️ Save Appointment
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Police Verification AI & Statutory Compliance Panel -->
+<div class="panel" id="police-section" style="border: 2px solid {% if a.police_status == 'Completed' %}#86efac{% else %}#cbd5e1{% endif %}; background: {% if a.police_status == 'Completed' %}linear-gradient(180deg, #f0fdf4 0%, #ffffff 120px){% else %}var(--card-bg){% endif %};">
+  <div class="panel-header" style="flex-wrap: wrap; gap: 12px; border-bottom: 1px solid {% if a.police_status == 'Completed' %}#bbf7d0{% else %}var(--border){% endif %};">
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+      <div class="panel-title" style="color: {% if a.police_status == 'Completed' %}#166534{% else %}var(--text-main){% endif %};">
+        <span>👮</span> Maharashtra Police Tenant Verification & AI Automation
+      </div>
+      {% if a.police_status == 'Completed' %}
+        <span class="badge badge-success" style="font-size: 12px; padding: 4px 10px;">
+          <span class="badge-dot"></span>VERIFIED & RECORDED
+        </span>
+      {% elif a.police_status == 'Form Filled (AI)' %}
+        <span class="badge badge-warning" style="font-size: 12px; padding: 4px 10px;">
+          <span class="badge-dot"></span>AI DOSSIER READY
+        </span>
+      {% else %}
+        <span class="badge badge-draft" style="font-size: 12px; padding: 4px 10px;">
+          <span class="badge-dot"></span>{{ a.police_status }}
+        </span>
+      {% endif %}
+    </div>
+
+    <!-- AI Automation & Download Action Hub -->
+    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+      <form method="post" action="/agreements/{{ a.id }}/police-ai-autofill" style="display: inline;">
+        <button type="submit" class="btn-secondary btn-sm" id="btn-police-ai-autofill" style="background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; font-weight: 600;" title="AI reads agreement parties, resolves local police station and fills all form fields">
+          🤖 1-Click AI Auto-Fill
+        </button>
+      </form>
+
+      <form method="post" action="/agreements/{{ a.id }}/police-ai-submit" style="display: inline;">
+        <button type="submit" class="btn-primary btn-sm" id="btn-police-ai-submit" style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); font-weight: 600;" title="Run AI submission verification pipeline, generate cryptographic seal and issue official acknowledgment certificate">
+          🚀 AI Auto-Submit & Certify
+        </button>
+      </form>
+
+      {% if a.police_status == 'Completed' %}
+        <a href="/agreements/{{ a.id }}/police-ack-pdf" class="btn-secondary btn-sm" id="btn-police-ack-pdf" style="background: #f0fdf4; color: #166534; border-color: #86efac; font-weight: 600;" title="Download Official Police Acknowledgment Certificate">
+          🛡️ Acknowledgment Certificate (PDF)
+        </a>
+      {% endif %}
+
+      <a href="/agreements/{{ a.id }}/police-form" class="btn-secondary btn-sm" id="btn-police-form-pdf" title="Download Official Maharashtra Police Tenant Verification Form">
+        📥 Form Report (PDF)
+      </a>
+    </div>
+  </div>
+
+  <div class="panel-body">
+    <!-- Police Station Jurisdiction & Submission Ribbon -->
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+      <div>
+        <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px;">Detected Statutory Jurisdiction</span>
+        <div style="font-size: 15px; font-weight: 700; color: #0f172a; margin-top: 2px;">
+          📍 {{ detected_police_station }}
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+          Jurisdiction matched from property address: <i>{{ a.property_address }}</i>
+        </div>
+      </div>
+
+      {% if a.police_token_no %}
+      <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: var(--radius-sm); padding: 8px 14px;">
+        <span style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #065f46;">Police Submission Token</span>
+        <div style="font-family: monospace; font-size: 14px; font-weight: 700; color: #047857; margin-top: 2px;">
+          {{ a.police_token_no }}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Edit Form -->
+    <form method="post" action="/agreements/{{ a.id }}/police-details" class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Tenant Occupation / Profession</label>
+        <input name="tenant_occupation" class="form-control" value="{{ a.tenant_occupation or 'Software Engineer / IT Professional' }}">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Tenant Employer / Workplace Name</label>
+        <input name="tenant_workplace_name" class="form-control" placeholder="e.g. Tech Mahindra / Infosys Ltd" value="{{ a.tenant_workplace_name or '' }}">
+      </div>
+
+      <div class="form-group full-width">
+        <label class="form-label">Tenant Workplace Address</label>
+        <input name="tenant_workplace_address" class="form-control" placeholder="e.g. Phase 2, Hinjewadi Rajiv Gandhi Infotech Park, Pune" value="{{ a.tenant_workplace_address or '' }}">
+      </div>
+
+      <div class="form-group full-width">
+        <label class="form-label">Permanent Native Place Address (as per Aadhaar)</label>
+        <input name="tenant_permanent_address" class="form-control" placeholder="e.g. House No. 104, Main Road, Native Place, District Satara, Maharashtra - 415001" value="{{ a.tenant_permanent_address or '' }}">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Emergency Contact Person Name</label>
+        <input name="emergency_contact_name" class="form-control" placeholder="e.g. Amit Patil" value="{{ a.emergency_contact_name or '' }}">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Emergency Contact Mobile</label>
+        <input name="emergency_contact_phone" class="form-control" placeholder="10-digit mobile" value="{{ a.emergency_contact_phone or '' }}">
+      </div>
+
+      <div class="form-group full-width">
+        <label class="form-label">Vehicle Registration Numbers (2-Wheeler / 4-Wheeler)</label>
+        <input name="vehicle_details" class="form-control" placeholder="e.g. MH 12 ET 4521 (2-Wheeler Honda Activa)" value="{{ a.vehicle_details or '' }}">
+      </div>
+
+      <div class="form-group full-width" style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
+        <button type="submit" class="btn-secondary" style="width: auto;">
+          💾 Save Police Particulars
+        </button>
+      </div>
+    </form>
+
+    <!-- MahaPolice Citizen Portal 1-Click Sync Hub -->
+    <div style="margin-top: 24px; padding-top: 20px; border-top: 1px dashed var(--border);">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+        <div>
+          <span style="font-weight: 700; color: var(--text-main); font-size: 13.5px;">🌐 citizen.mahapolice.gov.in 1-Click Auto-Fill Helper</span>
+          <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">
+            Use this bookmarklet or copy the JSON payload to populate the official Maharashtra Citizen Portal without re-typing.
+          </p>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <button type="button" onclick="copyPortalPayload()" class="btn-secondary btn-sm" id="btn-copy-payload">
+            📋 Copy JSON Payload
+          </button>
+          <a href="{{ portal_bookmarklet_js }}" class="btn-secondary btn-sm" style="background: #fffbeb; color: #b45309; border-color: #fde68a;" onclick="alert('Drag this button to your Browser Bookmarks Toolbar. When you open the Maharashtra Police Tenant Information page, click the bookmark to auto-fill all fields instantly!'); return false;">
+            ⭐ Drag Auto-Fill Bookmarklet
+          </a>
+          <a href="https://citizen.mahapolice.gov.in" target="_blank" class="btn-secondary btn-sm" style="color: var(--primary);">
+            🔗 Open MahaPolice Portal ↗
+          </a>
+        </div>
+      </div>
+
+      <details style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 12px;">
+        <summary style="cursor: pointer; font-weight: 600; color: var(--text-muted);">View Citizen Portal JSON Payload Preview</summary>
+        <pre id="portal-json-block" style="margin-top: 8px; background: #0f172a; color: #38bdf8; padding: 12px; border-radius: var(--radius-sm); overflow-x: auto; font-size: 11.5px;">{{ portal_payload_json }}</pre>
+      </details>
+    </div>
+
+  </div>
+</div>
+
+<!-- Digital Signature & Draft Approval Section -->
+<div class="panel">
+  <div class="panel-header">
+    <div class="panel-title">
+      <span>✍️</span> Digital Signature Pad & Draft Approval
+    </div>
+    <span style="font-size: 12px; color: var(--text-muted);">Client approval signature adoption</span>
+  </div>
+  <div class="panel-body">
+    {% if a.signature_data %}
+      <div style="display: flex; align-items: center; gap: 20px;">
+        <div style="background: white; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px;">
+          <img src="{{ a.signature_data }}" alt="Adopted Digital Signature" style="max-height: 80px; display: block;">
+        </div>
+        <div>
+          <span class="badge badge-success"><span class="badge-dot"></span>Client Approved & Signed</span>
+          <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Digital signature recorded and adopted for draft review.</p>
+        </div>
+      </div>
+    {% else %}
+      <form method="post" action="/agreements/{{ a.id }}/approve" id="sign-form">
+        <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: start;">
+          <div>
+            <label class="form-label">Draw Signature Below (Touch or Mouse):</label>
+            <div style="border: 2px dashed #94a3b8; border-radius: var(--radius-md); background: white; width: 340px; height: 120px; position: relative;">
+              <canvas id="sig-canvas" width="340" height="120" style="touch-action: none; cursor: crosshair;"></canvas>
+            </div>
+            <button type="button" onclick="clearSig()" class="btn-secondary btn-sm" style="margin-top: 6px;">Clear Pad</button>
+          </div>
+          
+          <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label">Signing Party Name</label>
+              <input name="signer_name" class="form-control" value="{{ a.tenant_name }}" required>
+            </div>
+            <input type="hidden" name="signature_data" id="sig-data-input">
+            <button type="submit" onclick="saveSig()" class="btn-primary" style="height: 42px; margin-top: 10px;">
+              ✍️ Adopt Signature & Approve Draft
+            </button>
+          </div>
+        </div>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Government Workflow & Tracking Cockpit -->
+<div class="panel">
+  <div class="panel-header">
+    <div class="panel-title">
+      <span>🏛️</span> Maharashtra Government Filing & Tracking Cockpit
+    </div>
+    <span style="font-size: 12px; color: var(--text-muted);">Update official tokens & verification dates</span>
+  </div>
+  <div class="panel-body">
+    
+    <!-- Portal Quick Access Links -->
+    <div class="portal-links-grid" style="margin-bottom: 24px;">
+      <a href="{{ gov_reg }}" target="_blank" class="portal-link-card">
+        <span class="portal-icon">🏛️</span>
+        <div class="portal-info">
+          <span class="portal-title">IGR Maharashtra Portal ↗</span>
+          <span class="portal-sub">Inspector General of Registration</span>
+        </div>
+      </a>
+
+      <a href="{{ gras }}" target="_blank" class="portal-link-card">
+        <span class="portal-icon">💳</span>
+        <div class="portal-info">
+          <span class="portal-title">GRAS MahaChallan ↗</span>
+          <span class="portal-sub">Pay Stamp Duty & Reg Fees online</span>
+        </div>
+      </a>
+
+      <a href="{{ police }}" target="_blank" class="portal-link-card">
+        <span class="portal-icon">👮</span>
+        <div class="portal-info">
+          <span class="portal-title">Maharashtra Police Portal ↗</span>
+          <span class="portal-sub">Tenant Verification Citizen Portal</span>
+        </div>
+      </a>
+    </div>
+
+    <!-- Status Update Form -->
+    <form method="post" action="/agreements/{{ a.id }}/status" class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Agreement Internal Status</label>
+        <select name="status" class="form-control">
+          <option value="Draft" {% if a.status == 'Draft' %}selected{% endif %}>Draft</option>
+          <option value="Client Approved" {% if a.status == 'Client Approved' %}selected{% endif %}>Client Approved</option>
+          <option value="Active" {% if a.status == 'Active' %}selected{% endif %}>Active</option>
+          <option value="Completed" {% if a.status == 'Completed' %}selected{% endif %}>Completed</option>
+          <option value="Terminated" {% if a.status == 'Terminated' %}selected{% endif %}>Terminated</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">IGR Registration Status</label>
+        <select name="registration_status" class="form-control">
+          <option value="Not Started" {% if a.registration_status == 'Not Started' %}selected{% endif %}>Not Started</option>
+          <option value="Pending" {% if a.registration_status == 'Pending' %}selected{% endif %}>Pending</option>
+          <option value="Submitted" {% if a.registration_status == 'Submitted' %}selected{% endif %}>Submitted (Fees Paid)</option>
+          <option value="Completed" {% if a.registration_status == 'Completed' %}selected{% endif %}>Completed (Index-II Issued)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Police Tenant Verification Status</label>
+        <select name="police_status" class="form-control">
+          <option value="Not Started" {% if a.police_status == 'Not Started' %}selected{% endif %}>Not Started</option>
+          <option value="Pending" {% if a.police_status == 'Pending' %}selected{% endif %}>Pending</option>
+          <option value="Submitted" {% if a.police_status == 'Submitted' %}selected{% endif %}>Submitted</option>
+          <option value="Completed" {% if a.police_status == 'Completed' %}selected{% endif %}>Completed / Verified</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">IGR e-Filing Token / Application No.</label>
+        <input name="igr_token_no" class="form-control" placeholder="e.g. MH-REG-2026-98124" value="{{ a.igr_token_no or '' }}">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Biometric Verification Appointment Date</label>
+        <input name="biometric_date" class="form-control" placeholder="e.g. 05-Oct-2026, 11:30 AM" value="{{ a.biometric_date or '' }}">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Police Verification Ack / Token No.</label>
+        <input name="police_token_no" class="form-control" placeholder="e.g. POL-PUN-BNR-4412" value="{{ a.police_token_no or '' }}">
+      </div>
+
+      <div class="form-group full-width">
+        <label class="form-label">Registered Index-II Number (Once Registered)</label>
+        <input name="index_ii_no" class="form-control" placeholder="e.g. HAV-12-08492-2026" value="{{ a.index_ii_no or '' }}">
+      </div>
+
+      <div class="form-group full-width" style="margin-top: 10px;">
+        <button type="submit" class="btn-primary" style="width: auto; align-self: flex-start;">
+          💾 Save Workflow Updates
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+<!-- Rent & Payment Ledger Section -->
+<div class="panel" id="payment-section">
+  <div class="panel-header">
+    <div class="panel-title">
+      <span>💳</span> Tenancy Payment Ledger & HRA Rent Receipts
+    </div>
+    <span style="font-size: 12px; color: var(--text-muted);">Issue instant tax-saving HRA receipts under Sec 10(13A)</span>
+  </div>
+  <div class="panel-body">
+    
+    <!-- Record Payment Inline Form -->
+    <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 18px; margin-bottom: 24px;">
+      <h3 style="font-size: 14px; font-weight: 700; color: var(--text-main); margin-bottom: 12px;">+ Record New Payment</h3>
+      <form method="post" action="/agreements/{{ a.id }}/payments" style="display: grid; grid-template-columns: repeat(4, 1fr) auto; gap: 12px; align-items: end;">
+        <div class="form-group">
+          <label class="form-label">Payment Type</label>
+          <select name="payment_type" class="form-control">
+            <option value="Rent" selected>Monthly Rent</option>
+            <option value="Deposit">Security Deposit</option>
+            <option value="Maintenance">Maintenance</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Amount (₹)</label>
+          <input name="amount" type="number" class="form-control" value="{{ a.rent }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">For Month & Year</label>
+          <input name="for_month_year" class="form-control" placeholder="e.g. October 2026" value="October 2026" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payment Mode</label>
+          <select name="payment_mode" class="form-control">
+            <option value="UPI" selected>UPI (GPay/PhonePe)</option>
+            <option value="NEFT/RTGS">NEFT / RTGS</option>
+            <option value="Cheque">Cheque</option>
+            <option value="Cash">Cash</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <input type="hidden" name="payment_date" value="{{ a.start_date.isoformat() }}">
+          <button type="submit" class="btn-primary" style="height: 42px; white-space: nowrap;">
+            Record & Issue Receipt
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Payments Table -->
+    <div class="data-table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Receipt No</th>
+            <th>Type</th>
+            <th>Month / Period</th>
+            <th>Amount Paid</th>
+            <th>Mode</th>
+            <th>Recorded Date</th>
+            <th style="text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in payments %}
+          <tr>
+            <td><b style="color: var(--primary); font-family: monospace;">{{ p.receipt_no }}</b></td>
+            <td><span class="badge badge-info"><span class="badge-dot"></span>{{ p.payment_type }}</span></td>
+            <td><b>{{ p.for_month_year }}</b></td>
+            <td><b style="color: var(--success-text);">₹{{ '{:,}'.format(p.amount) }}</b></td>
+            <td>{{ p.payment_mode }}</td>
+            <td style="font-size: 12px; color: var(--text-muted);">{{ p.payment_date }}</td>
+            <td style="text-align: right;">
+              <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                {% if p.wa_receipt_url %}
+                  <a href="{{ p.wa_receipt_url }}" target="_blank" class="btn-secondary btn-sm" style="color: #166534; border-color: #86efac;" title="Send Receipt on WhatsApp">
+                    💬 WhatsApp
+                  </a>
+                {% endif %}
+                <a href="/payments/{{ p.id }}/receipt" class="btn-secondary btn-sm" title="Download Official HRA Rent Receipt">
+                  📥 PDF
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">
+              No payment transactions recorded yet. Record rent payments above to generate compliant HRA tax receipts.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- Document Vault & Upload -->
+<div class="panel">
+  <div class="panel-header">
+    <div class="panel-title">
+      <span>📁</span> KYC & Document Vault
+    </div>
+    <span style="font-size: 12px; color: var(--text-muted);">Encrypted storage for identity cards and Index-II receipts</span>
+  </div>
+  <div class="panel-body">
+    
+    <form method="post" action="/agreements/{{ a.id }}/upload" enctype="multipart/form-data" style="display: flex; gap: 14px; align-items: flex-end; margin-bottom: 24px; flex-wrap: wrap;">
+      <div class="form-group" style="min-width: 220px;">
+        <label class="form-label">Document Category *</label>
+        <select name="doc_type" class="form-control" required>
+          <option value="Owner Aadhaar / PAN" selected>Owner Aadhaar / PAN</option>
+          <option value="Tenant Aadhaar / PAN">Tenant Aadhaar / PAN</option>
+          <option value="Property Electricity Bill">Property Electricity Bill / Index-II</option>
+          <option value="Challan / GRAS Receipt">Challan / GRAS Stamp Receipt</option>
+          <option value="Registered Agreement (Index-II)">Registered Agreement (Index-II)</option>
+          <option value="Police Verification NOC">Police Verification NOC</option>
+          <option value="Other Attachment">Other Attachment</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="flex: 1; min-width: 260px;">
+        <label class="form-label">Choose File (PDF, JPG, PNG) *</label>
+        <input type="file" name="file" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required>
+      </div>
+
+      <button type="submit" class="btn-primary" style="height: 44px;">
+        📤 Upload to Vault
+      </button>
+    </form>
+
+    <div class="data-table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Document Type</th>
+            <th>File Name</th>
+            <th>Uploaded Date</th>
+            <th style="text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for doc in docs %}
+          <tr>
+            <td><b>{{ doc.doc_type }}</b></td>
+            <td style="font-family: monospace; font-size: 13px;">{{ doc.filename }}</td>
+            <td style="font-size: 12px; color: var(--text-muted);">{{ doc.created_at.strftime('%d-%b-%Y %H:%M') }}</td>
+            <td style="text-align: right;">
+              <a href="/documents/{{ doc.id }}" target="_blank" class="btn-secondary btn-sm">
+                👁️ View / Download
+              </a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 30px;">
+              No documents uploaded yet. Upload Aadhaar, PAN, and Index-II files for audit compliance.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- Chronological Audit Trail -->
+<div class="panel">
+  <div class="panel-header">
+    <div class="panel-title">
+      <span>⏱️</span> Audit Trail & Action History
+    </div>
+  </div>
+  <div class="panel-body">
+    <div class="audit-list">
+      {% for l in logs %}
+      <div class="audit-item">
+        <span class="audit-action">✅ {{ l.action }}</span>
+        <span class="audit-time">{{ l.created_at.strftime('%d-%b-%Y %H:%M:%S') }}</span>
+      </div>
+      {% else %}
+      <p style="color: var(--text-muted); font-size: 13px;">No actions recorded.</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<script>
+function copyShareLink() {
+  navigator.clipboard.writeText(window.location.href).then(() => {
+    const btn = document.getElementById('btn-copy-link');
+    const old = btn.innerHTML;
+    btn.innerHTML = '✅ Link Copied!';
+    setTimeout(() => { btn.innerHTML = old; }, 2000);
+  });
+}
+
+const canvas = document.getElementById('sig-canvas');
+if (canvas) {
+  const ctx = canvas.getContext('2d');
+  let drawing = false;
+
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#0f172a';
+
+  function getPos(e) {
+    const r = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: clientX - r.left, y: clientY - r.top };
+  }
+
+  function startDraw(e) {
+    drawing = true;
+    const p = getPos(e);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    e.preventDefault();
+  }
+
+  function draw(e) {
+    if (!drawing) return;
+    const p = getPos(e);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    e.preventDefault();
+  }
+
+  function stopDraw() {
+    drawing = false;
+  }
+
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', stopDraw);
+  canvas.addEventListener('mouseleave', stopDraw);
+
+  canvas.addEventListener('touchstart', startDraw, { passive: false });
+  canvas.addEventListener('touchmove', draw, { passive: false });
+  canvas.addEventListener('touchend', stopDraw);
+
+  window.clearSig = function() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  };
+
+  window.saveSig = function() {
+    document.getElementById('sig-data-input').value = canvas.toDataURL('image/png');
+  };
+}
+
+function copyPortalPayload() {
+  const jsonText = document.getElementById('portal-json-block').innerText;
+  navigator.clipboard.writeText(jsonText).then(() => {
+    const btn = document.getElementById('btn-copy-payload');
+    const oldText = btn.innerText;
+    btn.innerText = '✅ Copied!';
+    setTimeout(() => { btn.innerText = oldText; }, 2000);
+  });
+}
+</script>
+{% endblock %}

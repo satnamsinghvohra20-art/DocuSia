@@ -1,0 +1,338 @@
+{% extends 'base.html' %}
+{% block title %}Create Agreement — Dashmesh Properties{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">New Leave & License Agreement</h1>
+    <p class="page-subtitle">Statutory format under Section 55 of Maharashtra Rent Control Act, 1999.</p>
+  </div>
+  <a href="/" class="btn-secondary">← Back to Dashboard</a>
+</div>
+
+<form method="post" action="/agreements/new" id="agreement-form">
+  <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start;">
+    
+    <!-- Left Column: Form Sections -->
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+      
+      <!-- Section 1: Parties -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>👤</span> Section 1: Licensor (Owner) & Licensee (Tenant)
+          </div>
+        </div>
+        <div class="panel-body">
+          <h3 style="font-size: 14px; color: var(--primary); margin-bottom: 12px; font-weight: 700; text-transform: uppercase;">A. Owner / Licensor (First Party)</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Full Name as per Aadhaar / PAN *</label>
+              <input name="owner_name" class="form-control" placeholder="e.g. Rajesh S. Sharma" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mobile Number (10 Digits) *</label>
+              <input name="owner_mobile" class="form-control" placeholder="10-digit mobile number" pattern="[6-9][0-9]{9}" maxlength="10" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">PAN Number (Format: ABCDE1234F)</label>
+              <input name="owner_pan" class="form-control" placeholder="e.g. ABCDE1234F" pattern="[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}" style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Aadhaar Last 4 Digits</label>
+              <input name="owner_aadhaar_last4" class="form-control" placeholder="e.g. 5678" pattern="[0-9]{4}" maxlength="4">
+            </div>
+          </div>
+
+          <h3 style="font-size: 14px; color: var(--primary); margin-top: 24px; margin-bottom: 12px; font-weight: 700; text-transform: uppercase;">B. Tenant / Licensee (Second Party)</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Full Name as per Aadhaar / PAN *</label>
+              <input name="tenant_name" class="form-control" placeholder="e.g. Vikramaditya Singh" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mobile Number (10 Digits) *</label>
+              <input name="tenant_mobile" class="form-control" placeholder="10-digit mobile number" pattern="[6-9][0-9]{9}" maxlength="10" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">PAN Number (Format: XYZPQ9876R)</label>
+              <input name="tenant_pan" class="form-control" placeholder="e.g. XYZPQ9876R" pattern="[A-Za-z]{5}[0-9]{4}[A-Za-z]{1}" style="text-transform: uppercase;" oninput="this.value = this.value.toUpperCase()">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Aadhaar Last 4 Digits</label>
+              <input name="tenant_aadhaar_last4" class="form-control" placeholder="e.g. 1234" pattern="[0-9]{4}" maxlength="4">
+            </div>
+            <div class="form-group full-width">
+              <label class="form-label">Permanent / Native Address (For Police Verification)</label>
+              <input name="tenant_permanent_address" class="form-control" placeholder="e.g. House No. 12, Main Road, District, State">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Employer / Workplace Name</label>
+              <input name="tenant_workplace_name" class="form-control" placeholder="e.g. Tech Mahindra / Infosys / Self-Employed">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Occupation / Profession</label>
+              <input name="tenant_occupation" class="form-control" value="Private Service">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Property Particulars -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>🏠</span> Section 2: Property Schedule & Particulars
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label class="form-label">Complete Property Address (Flat/Bldg/Road/Locality) *</label>
+              <textarea name="property_address" class="form-control" placeholder="e.g. Flat No. 602, B-Wing, Dashmesh Heights, Baner Road, Near Bitwise, Pune" required></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Property Type *</label>
+              <select name="property_type" class="form-control" required>
+                <option value="Residential Flat" selected>Residential Flat / Apartment</option>
+                <option value="Row House / Villa">Row House / Villa</option>
+                <option value="Penthouse">Penthouse</option>
+                <option value="Studio Apartment">Studio Apartment</option>
+                <option value="Commercial Office / Shop">Commercial Office / Shop</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">City *</label>
+              <input name="property_city" class="form-control" value="Pune" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Pincode</label>
+              <input name="pincode" class="form-control" placeholder="e.g. 411045" maxlength="6">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Furnishing Status</label>
+              <select name="furnishing_status" class="form-control">
+                <option value="Semi-Furnished" selected>Semi-Furnished</option>
+                <option value="Fully Furnished">Fully Furnished</option>
+                <option value="Unfurnished">Unfurnished</option>
+              </select>
+            </div>
+            <div class="form-group full-width">
+              <label class="form-label">Electricity Consumer / CA No. (MSEDCL/Adani/Tata Power)</label>
+              <input name="electricity_consumer_no" class="form-control" placeholder="e.g. 170012345678">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Commercial Terms & Period -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>💵</span> Section 3: Commercial Terms & Period
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Monthly License Fee (Rent in ₹) *</label>
+              <input name="rent" id="form-rent" type="number" class="form-control" value="25000" min="0" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Security Deposit (₹) *</label>
+              <input name="deposit" id="form-deposit" type="number" class="form-control" value="75000" min="0" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tenancy Start Date *</label>
+              <input name="start_date" id="form-start" type="date" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tenancy End Date *</label>
+              <input name="end_date" id="form-end" type="date" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Lock-in Period</label>
+              <select name="lock_in" class="form-control">
+                <option value="None">None</option>
+                <option value="3 Months">3 Months</option>
+                <option value="6 Months" selected>6 Months</option>
+                <option value="11 Months">11 Months</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Notice Period</label>
+              <select name="notice_period" class="form-control">
+                <option value="30 days" selected>30 days (1 Month)</option>
+                <option value="60 days">60 days (2 Months)</option>
+                <option value="15 days">15 days</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Area Jurisdiction</label>
+              <select name="area_type" id="form-area" class="form-control">
+                <option value="urban" selected>Urban Corporation (BMC, PMC, PCMC, TMC) - Reg ₹1,000</option>
+                <option value="rural">Rural (Gram Panchayat / Council) - Reg ₹500</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Purpose of Occupation</label>
+              <input name="purpose" class="form-control" value="Residential">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Monthly Society Maintenance (₹)</label>
+              <input name="maintenance_charges" type="number" class="form-control" value="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Renewal Escalation Rate (%)</label>
+              <input name="escalation_percent" type="number" class="form-control" value="5">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: Witnesses & Special Covenants -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>✍️</span> Section 4: Witnesses & Custom Covenants
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Witness 1 Full Name</label>
+              <input name="witness1_name" class="form-control" placeholder="e.g. Amit Patil">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Witness 1 Mobile</label>
+              <input name="witness1_phone" class="form-control" placeholder="Mobile">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Witness 2 Full Name</label>
+              <input name="witness2_name" class="form-control" placeholder="e.g. Suresh Deshmukh">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Witness 2 Mobile</label>
+              <input name="witness2_phone" class="form-control" placeholder="Mobile">
+            </div>
+            <div class="form-group full-width">
+              <label class="form-label">Special Terms & Additional Conditions (Optional)</label>
+              <textarea name="special_terms" class="form-control" placeholder="e.g. 1 Covered Four-Wheeler Car Parking Space No. B-12 allotted. Painting charges of INR 10,000 to be deducted upon vacation. Pets not allowed without society approval."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Real-time Live Statutory Fee Summary Card -->
+    <div style="position: sticky; top: 90px; display: flex; flex-direction: column; gap: 20px;">
+      
+      <div class="panel" style="border: 2px solid #bfdbfe; box-shadow: var(--shadow-lg);">
+        <div class="panel-header" style="background: #eff6ff;">
+          <div class="panel-title" style="color: var(--primary);">
+            <span>🏛️</span> Maharashtra Statutory Fees
+          </div>
+        </div>
+        <div class="panel-body">
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+            Auto-calculated per Maharashtra Stamp Act rules for registration on the official IGR portal.
+          </p>
+
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="info-row">
+              <span class="info-label">Tenancy Duration:</span>
+              <span class="info-val" id="summary-months">11 Months</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Total Rent:</span>
+              <span class="info-val" id="summary-rent">₹2,75,000</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Security Deposit:</span>
+              <span class="info-val" id="summary-deposit">₹75,000</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Total Consideration:</span>
+              <span class="info-val" id="summary-consideration">₹2,81,875</span>
+            </div>
+            <div class="info-row" style="border-top: 1px solid var(--border); padding-top: 10px;">
+              <span class="info-label" style="font-weight: 700; color: #b45309;">Stamp Duty (0.25%):</span>
+              <span class="info-val" id="summary-stamp" style="font-size: 16px; color: #b45309;">₹800</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label" style="font-weight: 700;">Registration Fee:</span>
+              <span class="info-val" id="summary-reg">₹1,000</span>
+            </div>
+            
+            <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; margin-top: 10px;">
+              <span style="font-size: 11.5px; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Total Govt Filing Fees</span>
+              <div id="summary-total" style="font-size: 24px; font-weight: 800; color: var(--primary); margin-top: 2px;">₹1,800</div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 24px; font-size: 15px; padding: 14px;">
+            ✨ Generate & Save Agreement
+          </button>
+        </div>
+      </div>
+
+      <!-- Compliance Box -->
+      <div style="background: white; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; font-size: 12px; color: var(--text-muted);">
+        <p><b>Statutory Compliance Note:</b></p>
+        <p style="margin-top: 4px;">Leave & License agreements in Maharashtra require e-Registration under Section 55 of MRC Act 1999. Dashmesh Properties creates the compliant draft and records your token numbers for door-step biometric verification.</p>
+      </div>
+
+    </div>
+
+  </div>
+</form>
+
+<script>
+// Auto-set default start and end dates (today -> 11 months from today)
+const today = new Date();
+const nextYear = new Date(today);
+nextYear.setMonth(nextYear.getMonth() + 11);
+nextYear.setDate(nextYear.getDate() - 1);
+
+document.getElementById('form-start').value = today.toISOString().split('T')[0];
+document.getElementById('form-end').value = nextYear.toISOString().split('T')[0];
+
+function recalcSummary() {
+  const rent = parseInt(document.getElementById('form-rent').value) || 0;
+  const deposit = parseInt(document.getElementById('form-deposit').value) || 0;
+  const start = new Date(document.getElementById('form-start').value);
+  const end = new Date(document.getElementById('form-end').value);
+  const area = document.getElementById('form-area').value;
+
+  let months = 11;
+  if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && end > start) {
+    const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    months = Math.max(1, Math.round(diffDays / 30.0));
+  }
+
+  const totalRent = rent * months;
+  const imputedDeposit = (deposit * 0.10) * (months / 12.0);
+  const totalConsideration = totalRent + imputedDeposit;
+  
+  const stampDuty = Math.max(100, Math.ceil((totalConsideration * 0.0025) / 100) * 100);
+  const regFee = area === 'rural' ? 500 : 1000;
+  const totalGovt = stampDuty + regFee;
+
+  document.getElementById('summary-months').innerText = `${months} Months`;
+  document.getElementById('summary-rent').innerText = `₹${totalRent.toLocaleString('en-IN')}`;
+  document.getElementById('summary-deposit').innerText = `₹${deposit.toLocaleString('en-IN')}`;
+  document.getElementById('summary-consideration').innerText = `₹${Math.round(totalConsideration).toLocaleString('en-IN')}`;
+  document.getElementById('summary-stamp').innerText = `₹${stampDuty.toLocaleString('en-IN')}`;
+  document.getElementById('summary-reg').innerText = `₹${regFee.toLocaleString('en-IN')}`;
+  document.getElementById('summary-total').innerText = `₹${totalGovt.toLocaleString('en-IN')}`;
+}
+
+['form-rent', 'form-deposit', 'form-start', 'form-end', 'form-area'].forEach(id => {
+  document.getElementById(id).addEventListener('input', recalcSummary);
+  document.getElementById(id).addEventListener('change', recalcSummary);
+});
+
+recalcSummary();
+</script>
+{% endblock %}
